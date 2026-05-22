@@ -4,7 +4,7 @@ import api from "../../api/api";
 import "../auth/auth.css";
 
 const DASHBOARD_URL =
-  process.env.REACT_APP_DASHBOARD_URL || "trade-dashboard-omega.vercel.app"
+  process.env.REACT_APP_DASHBOARD_URL || "https://trade-dashboard-omega.vercel.app"
 function SignUp() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
