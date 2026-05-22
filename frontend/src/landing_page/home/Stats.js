@@ -1,4 +1,5 @@
 import React from 'react';
+import { publicAsset } from '../../utils/publicAsset';
 
 function Stats() {
     return ( 
@@ -27,7 +28,12 @@ function Stats() {
                     
                 </div>
                 <div className='col-6 '>
-                <img src='media/images/ecosystem.png' alt='Hero section'  style={{width:"80%"}}  />
+                <img
+                  src={publicAsset('media/images/ecosystem.png')}
+                  alt="Zerodha ecosystem"
+                  className="home-section-img"
+                  style={{ width: '80%' }}
+                />
                 <div className='text-center'>
                     <a style={{textDecoration:"none"}} className='mx-5' href=''>Explore our products <i class="fa fa-long-arrow-right" aria-hidden="true"></i></a>
                     <a style={{textDecoration:"none"}} href=''>Try Kite demo <i class="fa fa-long-arrow-right" aria-hidden="true"></i></a>

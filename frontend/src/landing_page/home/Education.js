@@ -1,11 +1,16 @@
 import React from 'react';
+import { publicAsset } from '../../utils/publicAsset';
 
 function Education() {
     return ( 
         <div className='container'>
             <div className='row mt-5'>
                 <div className='col-6 mt-5'>
-                <img src='media/images/education.svg' alt='Hero section'  className='mb-5'/>
+                <img
+                  src={publicAsset('media/images/education.svg')}
+                  alt="Market education"
+                  className="mb-5 home-section-img"
+                />
                 </div>
                 <div className='col-6 mt-5'> 
                     <h1 className='mb-3 fs-2'>Free and open market education</h1>

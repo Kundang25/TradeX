@@ -1,0 +1,185 @@
+/* TradeStream landing — responsive layout (functionality unchanged) */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.home-section-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Navbar */
+@media (max-width: 991px) {
+  .nav-link {
+    margin-left: 0;
+    padding: 0.5rem 0;
+  }
+
+  .navbar-collapse .navbar-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding: 0.5rem 0 1rem;
+  }
+
+  .navbar-collapse form.d-flex {
+    width: 100%;
+  }
+
+  .navbar-brand img {
+    width: auto !important;
+    max-width: 140px;
+    height: auto;
+  }
+}
+
+/* Stack fixed-width Bootstrap columns on small screens */
+@media (max-width: 767px) {
+  .row > [class*="col-"] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .container,
+  .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .container.p-5,
+  .row.p-5,
+  [class*="col-"].p-5 {
+    padding: 1.25rem !important;
+  }
+
+  .row.m-5 {
+    margin: 1rem !important;
+  }
+
+  /* Hero CTA (inline width: 20%) */
+  .container .btn-primary.fs-5,
+  .container .btn.fs-5 {
+    width: 100% !important;
+    max-width: 320px;
+    display: block;
+  }
+
+  /* Product section links side-by-side */
+  .col-5 .mt-4 a[style*="marginLeft"] {
+    display: block;
+    margin-left: 0 !important;
+    margin-top: 0.75rem;
+  }
+
+  .col-5 .mt-4 a + a {
+    margin-top: 0.75rem;
+  }
+
+  /* Stats explore links */
+  .col-6 .text-center a.mx-5 {
+    display: block;
+    margin: 0.5rem 0 !important;
+  }
+}
+
+/* Support hero */
+@media (max-width: 991px) {
+  #supportwrapper {
+    margin: 0 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  #supportHero input {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+
+  #supportHero .row.p-5 {
+    padding: 1.25rem !important;
+    margin: 0 !important;
+  }
+
+  #supportHero a {
+    display: inline-block;
+    margin-bottom: 0.35rem;
+  }
+}
+
+@media (max-width: 575px) {
+  #supportwrapper {
+    margin: 0 1rem;
+  }
+
+  #supportHero h1.fs-3 {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Footer */
+@media (max-width: 767px) {
+  footer .row.mt-5 > [class*="col-"] {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  footer .row.mt-5 img {
+    width: auto !important;
+    max-width: 160px;
+  }
+
+  footer .mt-4.mx-4.text-center a.mx-4 {
+    display: inline-block;
+    margin: 0.35rem 0.5rem !important;
+    font-size: 0.85rem;
+  }
+
+  footer .mt-5.text-muted p {
+    font-size: 0.8rem;
+    text-align: left;
+  }
+}
+
+/* Auth pages */
+@media (max-width: 575px) {
+  .auth-page {
+    min-height: auto;
+    padding: 1.5rem 1rem;
+  }
+
+  .auth-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Typography scale-down on phones */
+@media (max-width: 575px) {
+  h1.fs-2,
+  .fs-2 {
+    font-size: 1.5rem !important;
+  }
+
+  .container h1.mt-5 {
+    font-size: 1.75rem;
+  }
+
+  .container img.mb-5 {
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* Universe / pricing buttons with fixed width */
+@media (max-width: 767px) {
+  a.btn[style*="width"],
+  .btn[style*="width"] {
+    width: 100% !important;
+    max-width: 280px;
+  }
+}
