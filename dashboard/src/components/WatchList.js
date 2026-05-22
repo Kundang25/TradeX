@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import { getUser } from "../utils/auth";
@@ -21,17 +21,17 @@ const WatchList = () => {
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
-  const loadWatchlist = () => {
+  const loadWatchlist = useCallback(() => {
     if (!user?.userId) return;
     api
       .get("/api/watchlist", { params: { userId: user.userId } })
       .then((res) => setWatchlist(res.data))
       .catch(() => setWatchlist([]));
-  };
+  }, [user?.userId]);
 
   useEffect(() => {
     loadWatchlist();
-  }, [user?.userId, portfolio]);
+  }, [loadWatchlist, portfolio]);
 
   useEffect(() => {
     if (!search.trim()) {

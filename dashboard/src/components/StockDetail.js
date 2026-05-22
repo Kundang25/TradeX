@@ -29,7 +29,7 @@ const StockDetail = () => {
       t: i,
       price: Number((base * (1 + (Math.random() - 0.5) * 0.05)).toFixed(2)),
     }));
-  }, [stock?.price, symbol]);
+  }, [stock?.price]);
 
   if (!stock) {
     return (
