@@ -5,7 +5,7 @@ import "../auth/auth.css";
 
 const DASHBOARD_URL =
   // process.env.REACT_APP_DASHBOARD_URL || "http://localhost:3001";
-  process.env.REACT_APP_DASHBOARD_URL || "https://tradex-3fzl.onrender.com";
+  process.env.REACT_APP_DASHBOARD_URL || "https://google.com";
 
 function SignIn() {
   const [form, setForm] = useState({ email: "", password: "" });

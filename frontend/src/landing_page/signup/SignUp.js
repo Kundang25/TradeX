@@ -4,7 +4,7 @@ import api from "../../api/api";
 import "../auth/auth.css";
 
 const DASHBOARD_URL =
-  process.env.REACT_APP_DASHBOARD_URL || "https://tradex-3fzl.onrender.com";
+  process.env.REACT_APP_DASHBOARD_URL || "https://google.com";
 
 function SignUp() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
