@@ -27,7 +27,8 @@ export function clearUser() {
 export function logout() {
   clearUser();
   const frontendUrl =
-    process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000";
+    process.env.REACT_APP_FRONTEND_URL || "https://tradex-3fzl.onrender.com";
+    // process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000";
   window.location.href = frontendUrl;
 }
 
