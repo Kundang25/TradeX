@@ -8,8 +8,10 @@ const { HoldingsModel } = require("./model/HoldingsModel");
 const { PositionsModel } = require("./model/PositionsModel");
 const { OrdersModel } = require("./model/ordersModel");
 const { UserModel } = require("./model/UserModel");
-const { seedHoldings, seedPositions } = require("./data/seedData");
+const { seedPositions } = require("./data/seedData");
 const { hashPassword, verifyPassword, isBcryptHash } = require("./utils/password");
+const { tickPrices, getAllMarketData, searchStocks } = require("./services/marketService");
+const portfolioService = require("./services/portfolioService");
 
 const PORT = process.env.PORT || 3002;
 const uri = process.env.MONGO_URL;
@@ -39,7 +41,6 @@ async function connectDB() {
       await mongoose.connect(uri, mongooseOptions);
       dbConnected = true;
       console.log(`MongoDB connected — database: ${mongoose.connection.name}`);
-      console.log("User accounts will be saved to the 'users' collection");
       return;
     } catch (err) {
       console.warn(
@@ -51,11 +52,7 @@ async function connectDB() {
       }
     }
   }
-
   dbConnected = false;
-  console.error(
-    "Could not connect to MongoDB. Sign up / sign in will not work until the cluster is reachable."
-  );
 }
 
 function requireDatabase(req, res, next) {
@@ -69,6 +66,16 @@ function requireDatabase(req, res, next) {
   next();
 }
 
+function requireUserId(req, res, next) {
+  const userId = req.query.userId || req.body.userId;
+  if (!userId) {
+    return res.status(400).json({ message: "userId is required" });
+  }
+  req.userId = userId;
+  next();
+}
+
+// --- Auth ---
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
@@ -86,7 +93,6 @@ app.post("/api/signup", requireDatabase, async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
-
     if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
@@ -100,12 +106,12 @@ app.post("/api/signup", requireDatabase, async (req, res) => {
     const user = new UserModel({ name, email, password: hashedPassword });
     await user.save();
 
-    console.log(`New user saved to MongoDB: ${email} (${user._id})`);
+    const userId = user._id.toString();
+    await portfolioService.ensureFunds(userId, true);
 
     res.status(201).json({
       success: true,
-      savedToDatabase: true,
-      userId: user._id.toString(),
+      userId,
       name: user.name,
       email: user.email,
     });
@@ -140,12 +146,10 @@ app.post("/api/login", requireDatabase, async (req, res) => {
     if (!isBcryptHash(user.password)) {
       user.password = await hashPassword(password);
       await user.save();
-      console.log(`Upgraded password hash for: ${email}`);
     }
 
     res.json({
       success: true,
-      savedToDatabase: true,
       userId: user._id.toString(),
       name: user.name,
       email: user.email,
@@ -156,18 +160,206 @@ app.post("/api/login", requireDatabase, async (req, res) => {
   }
 });
 
+// --- Market (live simulation) ---
+app.get("/api/market", (req, res) => {
+  res.json(getAllMarketData());
+});
+
+app.get("/api/market/search", (req, res) => {
+  res.json(searchStocks(req.query.q));
+});
+
+// --- Portfolio ---
+app.get("/api/portfolio/summary", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+    const summary = await portfolioService.getPortfolioSummary(userId, dbConnected);
+    res.json(summary);
+  } catch (err) {
+    console.error("Portfolio summary error:", err);
+    res.status(500).json({ message: "Failed to load portfolio" });
+  }
+});
+
 app.get("/allHoldings", async (req, res) => {
   try {
-    if (dbConnected) {
-      const allHoldings = await HoldingsModel.find({});
-      if (allHoldings.length > 0) {
-        return res.json(allHoldings);
-      }
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
     }
-    res.json(seedHoldings);
+    const holdings = await portfolioService.getEnrichedHoldings(
+      userId,
+      dbConnected
+    );
+    res.json(holdings);
   } catch (err) {
     console.error("Holdings error:", err);
-    res.json(seedHoldings);
+    res.status(500).json({ message: "Failed to load holdings" });
+  }
+});
+
+app.get("/api/funds", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+    const funds = await portfolioService.ensureFunds(userId, dbConnected);
+    res.json(funds);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load funds" });
+  }
+});
+
+app.patch("/api/funds", async (req, res) => {
+  try {
+    const { userId, availableCash } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+    const funds = await portfolioService.ensureFunds(userId, dbConnected);
+    if (availableCash !== undefined) {
+      funds.availableCash = Number(availableCash);
+      if (dbConnected) {
+        const { FundsModel } = require("./model/FundsModel");
+        await FundsModel.findOneAndUpdate({ userId }, funds, { upsert: true });
+      }
+    }
+    res.json(funds);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update funds" });
+  }
+});
+
+// --- Watchlist ---
+app.get("/api/watchlist", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+    const list = await portfolioService.getWatchlist(userId, dbConnected);
+    const market = getAllMarketData();
+    const enriched = list.map((w) => {
+      const m = market.find((x) => x.symbol === w.symbol);
+      return { ...w, ...m };
+    });
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load watchlist" });
+  }
+});
+
+app.post("/api/watchlist", async (req, res) => {
+  try {
+    const { userId, symbol } = req.body;
+    if (!userId || !symbol) {
+      return res.status(400).json({ message: "userId and symbol required" });
+    }
+    await portfolioService.addToWatchlist(userId, symbol.toUpperCase(), dbConnected);
+    res.json({ success: true, symbol });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to add to watchlist" });
+  }
+});
+
+app.delete("/api/watchlist/:symbol", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+    await portfolioService.removeFromWatchlist(
+      userId,
+      req.params.symbol.toUpperCase(),
+      dbConnected
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to remove from watchlist" });
+  }
+});
+
+// --- Orders ---
+app.get("/allOrders", async (req, res) => {
+  try {
+    const { userId, mode, status } = req.query;
+    const filter = {};
+    if (userId) filter.userId = userId;
+    if (mode) filter.mode = mode;
+    if (status) filter.status = status;
+
+    if (dbConnected) {
+      const orders = await OrdersModel.find(filter).sort({
+        createdAt: -1,
+        _id: -1,
+      });
+      return res.json(orders);
+    }
+
+    let list = [...memoryOrders];
+    if (userId) list = list.filter((o) => o.userId === userId);
+    if (mode) list = list.filter((o) => o.mode === mode);
+    if (status) list = list.filter((o) => o.status === status);
+    res.json(list.reverse());
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+app.post("/newOrder", async (req, res) => {
+  try {
+    const {
+      name,
+      symbol,
+      qty,
+      price,
+      mode,
+      userId,
+      orderType = "MARKET",
+    } = req.body;
+
+    const stockSymbol = (symbol || name)?.toUpperCase();
+    if (!stockSymbol || !qty || price === undefined || !mode || !userId) {
+      return res.status(400).json({ message: "Missing order fields" });
+    }
+
+    const orderData = await portfolioService.executeOrder(
+      {
+        userId,
+        symbol: stockSymbol,
+        qty: Number(qty),
+        price: Number(price),
+        mode,
+        orderType,
+      },
+      dbConnected
+    );
+
+    if (dbConnected) {
+      const saved = await OrdersModel.create(orderData);
+      return res.json({
+        success: true,
+        message: "Order executed!",
+        order: saved,
+        portfolio: await portfolioService.getPortfolioSummary(userId, true),
+      });
+    }
+
+    const saved = { _id: `ord_${Date.now()}`, ...orderData };
+    memoryOrders.push(saved);
+    res.json({
+      success: true,
+      message: "Order executed!",
+      order: saved,
+      portfolio: await portfolioService.getPortfolioSummary(userId, false),
+    });
+  } catch (err) {
+    console.error("Order error:", err);
+    res.status(400).json({ message: err.message || "Failed to execute order" });
   }
 });
 
@@ -181,92 +373,25 @@ app.get("/allPositions", async (req, res) => {
     }
     res.json(seedPositions);
   } catch (err) {
-    console.error("Positions error:", err);
     res.json(seedPositions);
-  }
-});
-
-app.get("/allOrders", async (req, res) => {
-  try {
-    const { userId } = req.query;
-
-    if (dbConnected) {
-      const filter = userId ? { userId } : {};
-      const orders = await OrdersModel.find(filter).sort({
-        createdAt: -1,
-        _id: -1,
-      });
-      return res.json(orders);
-    }
-
-    const filtered = userId
-      ? memoryOrders.filter((o) => o.userId === userId)
-      : memoryOrders;
-    res.json([...filtered].reverse());
-  } catch (err) {
-    console.error("Orders fetch error:", err);
-    res.json([]);
-  }
-});
-
-app.post("/newOrder", async (req, res) => {
-  try {
-    const { name, qty, price, mode, userId } = req.body;
-
-    if (!name || !qty || price === undefined || !mode) {
-      return res.status(400).json({ message: "Missing order fields" });
-    }
-
-    if (!userId) {
-      return res.status(400).json({ message: "userId is required to place an order" });
-    }
-
-    const order = {
-      name,
-      qty: Number(qty),
-      price: Number(price),
-      mode,
-      userId,
-      createdAt: new Date(),
-    };
-
-    if (dbConnected) {
-      const newOrder = new OrdersModel(order);
-      const saved = await newOrder.save();
-      return res.json({
-        success: true,
-        message: "Order saved!",
-        order: saved,
-      });
-    }
-
-    const saved = { _id: `ord_${Date.now()}`, ...order };
-    memoryOrders.push(saved);
-    res.json({ success: true, message: "Order saved!", order: saved });
-  } catch (err) {
-    console.error("Order error:", err);
-    res.status(500).json({ message: "Failed to save order" });
   }
 });
 
 mongoose.connection.on("disconnected", () => {
   dbConnected = false;
-  console.warn("MongoDB disconnected");
 });
 
-mongoose.connection.on("reconnected", () => {
-  dbConnected = true;
-  console.log("MongoDB reconnected");
-});
+setInterval(() => {
+  tickPrices();
+}, 3000);
 
 async function startServer() {
   await connectDB();
+  tickPrices();
 
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    if (dbConnected) {
-      console.log("Auth: sign up & sign in → MongoDB Atlas (users collection)");
-    }
+    console.log("Paper trading engine + live price simulation (3s)");
   });
 }
 

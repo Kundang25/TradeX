@@ -1,16 +1,51 @@
-.container {
-    --radius: 4px;
-    width: 40%;
-    height: 63%;
-    background: rgb(245, 245, 245);
-    position: absolute;
-    bottom: 0;
-    left: 35%;
-    cursor: move;
+.order-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 99;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.container.order-panel {
+    --radius: 8px;
+    width: min(420px, 92vw);
+    max-height: 85vh;
+    background: #fff;
+    position: fixed;
+    bottom: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: default;
     box-sizing: border-box;
     z-index: 100;
     border-radius: var(--radius);
-    border: 1px solid rgb(238, 238, 238);
+    border: 1px solid rgb(230, 230, 230);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    animation: slideUp 0.25s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   
   .dragging {
@@ -259,9 +294,113 @@
     margin: 0 0 8px;
   }
 
+  .order-type-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+  }
+
+  .order-type-row label {
+    cursor: pointer;
+  }
+
+  .estimated-total {
+    font-size: 0.9rem;
+    margin-top: 8px;
+    color: #444;
+  }
+
   .buttons .btn {
     border: none;
     cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .buttons .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .buttons .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .order-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    font-size: 1.4rem;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .order-close-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  .order-live-price {
+    margin: 4px 0 0;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+  }
+
+  .order-hints {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 10px;
+  }
+
+  .order-warning {
+    color: #e65100;
+    font-size: 0.8rem;
+    margin: 4px 0 0;
+  }
+
+  .qty-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .qty-preset {
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .qty-preset:hover,
+  .qty-preset.active {
+    border-color: #4184f3;
+    background: #e8f0fe;
+    color: #4184f3;
+  }
+
+  .qty-input-wrap {
+    display: flex;
+    align-items: center;
+  }
+
+  .qty-step {
+    border: none;
+    background: #f0f0f0;
+    width: 28px;
+    height: 35px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .qty-step:hover {
+    background: #e0e0e0;
   }
   
   .btn-grey:hover {

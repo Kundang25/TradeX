@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useMarketStore } from "../store/useMarketStore";
+import { getUser } from "../utils/auth";
 
 import BuyActionWindow from "./BuyActionWindow";
 
@@ -6,6 +8,7 @@ const GeneralContext = React.createContext({
   openBuyWindow: () => {},
   openSellWindow: () => {},
   closeOrderWindow: () => {},
+  notifyOrderPlaced: () => {},
   ordersRefreshKey: 0,
   orderNotice: null,
 });
@@ -17,6 +20,7 @@ export const GeneralContextProvider = (props) => {
   const [orderMode, setOrderMode] = useState("BUY");
   const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
   const [orderNotice, setOrderNotice] = useState(null);
+  const fetchPortfolio = useMarketStore((s) => s.fetchPortfolio);
 
   const handleOpenOrderWindow = (uid, mode = "BUY", price = 0) => {
     setIsOrderWindowOpen(true);
@@ -31,11 +35,17 @@ export const GeneralContextProvider = (props) => {
     setOrderMode("BUY");
   };
 
-  const notifyOrderPlaced = (mode, stockName) => {
+  const notifyOrderPlaced = (mode, stockName, portfolioData) => {
     setOrdersRefreshKey((k) => k + 1);
+    if (portfolioData) {
+      useMarketStore.setState({ portfolio: portfolioData, loading: false });
+    } else {
+      const user = getUser();
+      if (user?.userId) fetchPortfolio(user.userId);
+    }
     setOrderNotice({
       type: "success",
-      text: `${mode} order for ${stockName} placed successfully`,
+      text: `${mode} order for ${stockName} executed successfully`,
     });
     setTimeout(() => setOrderNotice(null), 3500);
   };

@@ -1,122 +1,106 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/api";
-import { holdings as fallbackHoldings } from "../data/data";
+import { getUser } from "../utils/auth";
+import { formatINR } from "../utils/portfolio";
+import { useMarketStore } from "../store/useMarketStore";
+import PortfolioCards from "./PortfolioCards";
 import { VerticalGraph } from "./VerticalGraph";
+import { CHART_COLORS } from "../utils/portfolio";
 
 const Holdings = () => {
-  const [allHoldings, setAllHoldings] = useState([]);
-  const [loadError, setLoadError] = useState("");
+  const user = getUser();
+  const { portfolio } = useMarketStore();
+  const [holdings, setHoldings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.userId) return;
     api
-      .get("/allHoldings")
-      .then((res) => {
-        setAllHoldings(res.data);
-        setLoadError("");
-      })
-      .catch(() => {
-        setAllHoldings(fallbackHoldings);
-        setLoadError(
-          "Could not reach the API — showing cached holdings. Start the backend on port 3002."
-        );
-      });
-  }, []);
+      .get("/allHoldings", { params: { userId: user.userId } })
+      .then((res) => setHoldings(res.data))
+      .catch(() => setHoldings(portfolio?.holdings || []))
+      .finally(() => setLoading(false));
+  }, [user?.userId, portfolio?.holdings]);
 
-  // const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
-  const labels = allHoldings.map((subArray) => subArray["name"]);
+  const analytics = portfolio?.analytics;
 
+  const labels = holdings.map((h) => h.symbol);
   const data = {
     labels,
     datasets: [
       {
-        label: "Stock Price",
-        data: allHoldings.map((stock) => stock.price),
-        backgroundColor: "rgba(255, 99, 132, 0.5)",
+        label: "Current value",
+        data: holdings.map((h) => h.currentValue),
+        backgroundColor: CHART_COLORS.slice(0, holdings.length),
       },
     ],
   };
 
-  // export const data = {
-  //   labels,
-  //   datasets: [
-  // {
-  //   label: 'Dataset 1',
-  //   data: labels.map(() => faker.datatype.number({ min: 0, max: 1000 })),
-  //   backgroundColor: 'rgba(255, 99, 132, 0.5)',
-  // },
-  //     {
-  //       label: 'Dataset 2',
-  //       data: labels.map(() => faker.datatype.number({ min: 0, max: 1000 })),
-  //       backgroundColor: 'rgba(53, 162, 235, 0.5)',
-  //     },
-  //   ],
-  // };
+  if (loading && holdings.length === 0) {
+    return <p className="orders-status">Loading holdings…</p>;
+  }
 
   return (
     <>
-      {loadError && (
-        <div className="api-warning" role="alert">
-          {loadError}
-        </div>
-      )}
-      <h3 className="title">Holdings ({allHoldings.length})</h3>
+      <PortfolioCards analytics={analytics} />
+      <h3 className="title">Holdings ({holdings.length})</h3>
 
       <div className="order-table">
         <table>
-          <tr>
-            <th>Instrument</th>
-            <th>Qty.</th>
-            <th>Avg. cost</th>
-            <th>LTP</th>
-            <th>Cur. val</th>
-            <th>P&L</th>
-            <th>Net chg.</th>
-            <th>Day chg.</th>
-          </tr>
-
-          {allHoldings.map((stock, index) => {
-            const curValue = stock.price * stock.qty;
-            const isProfit = curValue - stock.avg * stock.qty >= 0.0;
-            const profClass = isProfit ? "profit" : "loss";
-            const dayClass = stock.isLoss ? "loss" : "profit";
-
-            return (
-              <tr key={index}>
-                <td>{stock.name}</td>
-                <td>{stock.qty}</td>
-                <td>{stock.avg.toFixed(2)}</td>
-                <td>{stock.price.toFixed(2)}</td>
-                <td>{curValue.toFixed(2)}</td>
-                <td className={profClass}>
-                  {(curValue - stock.avg * stock.qty).toFixed(2)}
-                </td>
-                <td className={profClass}>{stock.net}</td>
-                <td className={dayClass}>{stock.day}</td>
-              </tr>
-            );
-          })}
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th>Sector</th>
+              <th>Qty.</th>
+              <th>Avg.</th>
+              <th>LTP</th>
+              <th>Cur. val</th>
+              <th>P&L</th>
+              <th>Net chg.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {holdings.map((stock) => {
+              const profClass = stock.pnl >= 0 ? "profit" : "loss";
+              return (
+                <tr key={stock.symbol}>
+                  <td>
+                    <Link to={`/ticker/${stock.symbol}`}>{stock.symbol}</Link>
+                  </td>
+                  <td>{stock.sector}</td>
+                  <td>{stock.qty}</td>
+                  <td>{stock.avgPrice.toFixed(2)}</td>
+                  <td>{stock.currentPrice.toFixed(2)}</td>
+                  <td>{stock.currentValue.toFixed(2)}</td>
+                  <td className={profClass}>{stock.pnl.toFixed(2)}</td>
+                  <td className={profClass}>{stock.net}</td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       </div>
 
-      <div className="row">
-        <div className="col">
-          <h5>
-            29,875.<span>55</span>{" "}
-          </h5>
-          <p>Total investment</p>
+      {analytics && (
+        <div className="row holdings-totals">
+          <div className="col">
+            <h5>{formatINR(analytics.totalInvestment)}</h5>
+            <p>Total investment</p>
+          </div>
+          <div className="col">
+            <h5>{formatINR(analytics.totalCurrentValue)}</h5>
+            <p>Current value</p>
+          </div>
+          <div className="col">
+            <h5 className={analytics.totalPnl >= 0 ? "profit" : "loss"}>
+              {formatINR(analytics.totalPnl)} ({analytics.totalPnlPercent.toFixed(2)}%)
+            </h5>
+            <p>P&L</p>
+          </div>
         </div>
-        <div className="col">
-          <h5>
-            31,428.<span>95</span>{" "}
-          </h5>
-          <p>Current value</p>
-        </div>
-        <div className="col">
-          <h5>1,553.40 (+5.20%)</h5>
-          <p>P&L</p>
-        </div>
-      </div>
-      <VerticalGraph data={data} />
+      )}
+      {holdings.length > 0 && <VerticalGraph data={data} />}
     </>
   );
 };

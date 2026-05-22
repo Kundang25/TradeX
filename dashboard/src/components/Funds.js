@@ -1,92 +1,65 @@
 import React, { useState, useEffect } from "react";
-
+import { toast } from "sonner";
+import api from "../api/api";
 import { getUser } from "../utils/auth";
-
-const FUNDS_KEY = "tradestream_funds";
-
-const defaultFunds = {
-  availableCash: 4043.1,
-  usedMargin: 3757.3,
-  openingBalance: 4043.1,
-  payin: 4064.0,
-};
-
-function loadFunds(userId) {
-  try {
-    const raw = localStorage.getItem(`${FUNDS_KEY}_${userId || "guest"}`);
-    return raw ? { ...defaultFunds, ...JSON.parse(raw) } : { ...defaultFunds };
-  } catch {
-    return { ...defaultFunds };
-  }
-}
-
-function saveFunds(userId, funds) {
-  localStorage.setItem(`${FUNDS_KEY}_${userId || "guest"}`, JSON.stringify(funds));
-}
+import { formatINR } from "../utils/portfolio";
+import { useMarketStore } from "../store/useMarketStore";
 
 const Funds = () => {
   const user = getUser();
-  const [funds, setFunds] = useState(defaultFunds);
+  const { portfolio, fetchPortfolio } = useMarketStore();
   const [amount, setAmount] = useState("");
-  const [message, setMessage] = useState("");
+  const funds = portfolio?.funds || { availableCash: 0, usedMargin: 0 };
 
   useEffect(() => {
-    setFunds(loadFunds(user?.userId));
-  }, [user?.userId]);
+    if (user?.userId) fetchPortfolio(user.userId);
+  }, [user?.userId, fetchPortfolio]);
 
-  const availableMargin = funds.availableCash;
-  const persist = (next) => {
-    setFunds(next);
-    saveFunds(user?.userId, next);
-  };
-
-  const showMsg = (text, type = "success") => {
-    setMessage({ text, type });
-    setTimeout(() => setMessage(null), 3000);
-  };
-
-  const handleAddFunds = () => {
+  const handleAddFunds = async () => {
     const value = parseFloat(amount);
     if (!value || value <= 0) {
-      showMsg("Enter a valid amount to add", "error");
+      toast.error("Enter a valid amount");
       return;
     }
-    persist({
-      ...funds,
-      availableCash: funds.availableCash + value,
-      payin: funds.payin + value,
-    });
-    setAmount("");
-    showMsg(`₹${value.toFixed(2)} added to your account`);
+    try {
+      await api.patch("/api/funds", {
+        userId: user.userId,
+        availableCash: funds.availableCash + value,
+      });
+      toast.success(`₹${value} added`);
+      setAmount("");
+      fetchPortfolio(user.userId);
+    } catch {
+      toast.error("Failed to add funds");
+    }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const value = parseFloat(amount);
     if (!value || value <= 0) {
-      showMsg("Enter a valid amount to withdraw", "error");
+      toast.error("Enter a valid amount");
       return;
     }
     if (value > funds.availableCash) {
-      showMsg("Insufficient balance", "error");
+      toast.error("Insufficient balance");
       return;
     }
-    persist({
-      ...funds,
-      availableCash: funds.availableCash - value,
-    });
-    setAmount("");
-    showMsg(`₹${value.toFixed(2)} withdrawn successfully`);
+    try {
+      await api.patch("/api/funds", {
+        userId: user.userId,
+        availableCash: funds.availableCash - value,
+      });
+      toast.success(`₹${value} withdrawn`);
+      setAmount("");
+      fetchPortfolio(user.userId);
+    } catch {
+      toast.error("Failed to withdraw");
+    }
   };
 
   return (
     <>
       <h3 className="title">Funds</h3>
-
-      {message && (
-        <div className={`funds-message funds-message-${message.type}`}>
-          {message.text}
-        </div>
-      )}
 
       <div className="funds">
         <p>Instant, zero-cost fund transfers with UPI</p>
@@ -113,67 +86,26 @@ const Funds = () => {
           <span>
             <p>Equity</p>
           </span>
-
           <div className="table">
             <div className="data">
-              <p>Available margin</p>
-              <p className="imp colored">{availableMargin.toFixed(2)}</p>
+              <p>Available cash</p>
+              <p className="imp colored">{formatINR(funds.availableCash)}</p>
             </div>
             <div className="data">
               <p>Used margin</p>
-              <p className="imp">{funds.usedMargin.toFixed(2)}</p>
+              <p className="imp">{formatINR(funds.usedMargin)}</p>
             </div>
             <div className="data">
-              <p>Available cash</p>
-              <p className="imp">{funds.availableCash.toFixed(2)}</p>
-            </div>
-            <hr />
-            <div className="data">
-              <p>Opening balance</p>
-              <p>{funds.openingBalance.toFixed(2)}</p>
-            </div>
-            <div className="data">
-              <p>Payin</p>
-              <p>{funds.payin.toFixed(2)}</p>
-            </div>
-            <div className="data">
-              <p>SPAN</p>
-              <p>0.00</p>
-            </div>
-            <div className="data">
-              <p>Delivery margin</p>
-              <p>0.00</p>
-            </div>
-            <div className="data">
-              <p>Exposure</p>
-              <p>0.00</p>
-            </div>
-            <div className="data">
-              <p>Options premium</p>
-              <p>0.00</p>
-            </div>
-            <hr />
-            <div className="data">
-              <p>Collateral (Liquid funds)</p>
-              <p>0.00</p>
-            </div>
-            <div className="data">
-              <p>Collateral (Equity)</p>
-              <p>0.00</p>
-            </div>
-            <div className="data">
-              <p>Total collateral</p>
-              <p>0.00</p>
+              <p>Portfolio value</p>
+              <p className="imp">
+                {formatINR(portfolio?.analytics?.totalCurrentValue || 0)}
+              </p>
             </div>
           </div>
         </div>
-
         <div className="col">
           <div className="commodity">
-            <p>You don&apos;t have a commodity account</p>
-            <button type="button" className="btn btn-blue">
-              Open account
-            </button>
+            <p>Paper trading wallet — funds update when you buy or sell.</p>
           </div>
         </div>
       </div>

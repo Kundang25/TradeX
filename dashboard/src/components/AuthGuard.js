@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getUser, initAuthFromUrl } from "../utils/auth";
 
 const FRONTEND_SIGNIN =
-  `${process.env.REACT_APP_FRONTEND_URL || "http://localhost:3000"}/signin`;
+  `${process.env.REACT_APP_FRONTEND_URL || "https://trade-frontend-sigma.vercel.app/"}/signin`;
 
 const AuthGuard = ({ children, onAuthenticated }) => {
   const [status, setStatus] = useState("loading");
