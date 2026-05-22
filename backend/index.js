@@ -6,7 +6,7 @@ const cors = require("cors");
 
 const { HoldingsModel } = require("./model/HoldingsModel");
 const { PositionsModel } = require("./model/PositionsModel");
-const { OrdersModel } = require("./model/OrdersModel");
+const { OrdersModel } = require("./model/ordersModel");
 const { UserModel } = require("./model/UserModel");
 const { seedHoldings, seedPositions } = require("./data/seedData");
 const { hashPassword, verifyPassword, isBcryptHash } = require("./utils/password");
