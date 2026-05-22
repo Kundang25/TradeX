@@ -1,5 +1,5 @@
 import React from 'react';
-import { publicAsset } from '../../utils/publicAsset';
+import { EDUCATION_IMAGE } from '../../constants/homeImages';
 
 function Education() {
     return ( 
@@ -7,7 +7,7 @@ function Education() {
             <div className='row mt-5'>
                 <div className='col-6 mt-5'>
                 <img
-                  src={publicAsset('media/images/education.svg')}
+                  src={EDUCATION_IMAGE}
                   alt="Market education"
                   className="mb-5 home-section-img"
                 />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { publicAsset } from '../../utils/publicAsset';
+import { ECOSYSTEM_IMAGE } from '../../constants/homeImages';
 
 function Stats() {
     return ( 
@@ -29,7 +29,7 @@ function Stats() {
                 </div>
                 <div className='col-6 '>
                 <img
-                  src={publicAsset('media/images/ecosystem.png')}
+                  src={ECOSYSTEM_IMAGE}
                   alt="Zerodha ecosystem"
                   className="home-section-img"
                   style={{ width: '80%' }}
