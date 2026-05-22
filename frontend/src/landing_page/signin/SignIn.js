@@ -5,7 +5,7 @@ import "../auth/auth.css";
 
 const DASHBOARD_URL =
   // process.env.REACT_APP_DASHBOARD_URL || "http://localhost:3001";
-  process.env.REACT_APP_DASHBOARD_URL || "https://google.com";
+  process.env.REACT_APP_DASHBOARD_URL || "https://trade-dashboard-ashen.vercel.app";
 
 function SignIn() {
   const [form, setForm] = useState({ email: "", password: "" });
